@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0F1F2E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="RideLedger">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
+<title>RideLedger V5 - Uber &amp; DiDi bookkeeping</title>
+<style>
+:root{
+  --paper:#EDF0F3;--surface:#FFFFFF;--surface2:#F5F7F9;--ink:#0F1F2E;--ink2:#526273;--line:#D8DFE6;
+  --keep:#0B7A55;--fee:#7A5AC8;--exp:#C4432F;--gst:#B7791F;--accent:#1F4FD8;--accent-ink:#FFFFFF;
+  --uber:#1A1A1A;--didi:#F26A21;--warnbg:#FFF6DD;--warnink:#7A5200;--errbg:#FDE8E4;--errink:#8C2415;--scrim:rgba(10,20,30,.55);
+  --display:"Bricolage Grotesque","Avenir Next","Segoe UI",system-ui,sans-serif;
+  --body:"Hanken Grotesk",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0C1620;--surface:#15212D;--surface2:#1B2937;--ink:#E9EEF3;--ink2:#9DAEBF;--line:#28394B;
+    --keep:#3FD6A0;--fee:#B9A0F5;--exp:#F3826D;--gst:#EDB75C;--accent:#7FA3FF;--accent-ink:#0C1620;
+    --uber:#DCE2E8;--didi:#FF8A4C;--warnbg:#3A2F14;--warnink:#F1D08A;--errbg:#3C1D18;--errink:#F8B4A8;--scrim:rgba(0,0,0,.65);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0C1620;--surface:#15212D;--surface2:#1B2937;--ink:#E9EEF3;--ink2:#9DAEBF;--line:#28394B;
+  --keep:#3FD6A0;--fee:#B9A0F5;--exp:#F3826D;--gst:#EDB75C;--accent:#7FA3FF;--accent-ink:#0C1620;
+  --uber:#DCE2E8;--didi:#FF8A4C;--warnbg:#3A2F14;--warnink:#F1D08A;--errbg:#3C1D18;--errink:#F8B4A8;--scrim:rgba(0,0,0,.65);
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 16px/1.45 var(--body);padding-bottom:calc(150px)}
+body.lock{overflow:hidden}
+[hidden]{display:none!important}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+input,select,textarea{font:inherit;font-size:16px;color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:11px 12px;width:100%;min-width:0}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+h1,h2,h3{font-family:var(--display);margin:0;line-height:1.15;letter-spacing:-.01em}
+h2{font-size:22px;font-weight:700}h3{font-size:17px;font-weight:700}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--ink2);font-size:14px;margin:4px 0 0}
+
+/* header */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:var(--paper);padding:10px 16px 8px;border-bottom:1px solid var(--line)}
+.top-row{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:760px;margin:0 auto}
+.brand{display:flex;align-items:center;gap:9px;font-family:var(--display);font-weight:700;font-size:20px}
+.brand svg{width:30px;height:30px;border-radius:9px;background:#0F1F2E;color:#fff;padding:5px}
+.pnav{display:flex;align-items:center;gap:2px}
+.pnav button{width:38px;height:38px;border:0;border-radius:10px;background:transparent;font-size:22px;line-height:1}
+.pnav button:disabled{opacity:.25;cursor:default}
+#pLabel{min-width:120px;text-align:center;font-weight:600;font-size:15px}
+.chips{display:flex;gap:8px;overflow-x:auto;max-width:760px;margin:8px auto 0;scrollbar-width:none;padding-bottom:2px}
+.chips::-webkit-scrollbar{display:none}
+.chip{white-space:nowrap;border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 14px;font-weight:600;font-size:14px}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+main{max-width:760px;margin:0 auto;padding:16px}
+.card{background:var(--surface);border-radius:20px;padding:18px;margin-bottom:14px;border:1px solid var(--line)}
+
+/* hero */
+.hero{padding:22px 20px 20px}
+.hero .lbl{margin:0;font-weight:600;color:var(--ink2);font-size:15px}
+.big{font-family:var(--display);font-weight:700;font-size:clamp(44px,14vw,64px);line-height:1;letter-spacing:-.03em;margin:6px 0 4px;color:var(--keep)}
+.big.neg{color:var(--exp)}
+.hero .sub{margin:0 0 18px;color:var(--ink2);font-size:15px}
+.bar{display:flex;height:16px;border-radius:999px;overflow:hidden;background:var(--surface2);border:1px solid var(--line)}
+.bar i{display:block;height:100%}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;margin:16px 0 0;padding:0}
+.legend div{display:flex;flex-direction:column;gap:2px}
+.legend dt{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--ink2)}
+.legend dt b{width:10px;height:10px;border-radius:3px;display:inline-block}
+.legend dd{margin:0;font-weight:700;font-size:18px}
+.insight{margin:16px 0 0;padding:12px 14px;border-radius:12px;background:var(--surface2);font-size:15px}
+.banner{display:flex;gap:12px;align-items:center;justify-content:space-between;background:var(--warnbg);color:var(--warnink);border-radius:14px;padding:12px 14px;margin-bottom:14px;font-size:14px}
+.banner button{border:0;border-radius:10px;background:var(--warnink);color:var(--warnbg);font-weight:700;padding:8px 12px;white-space:nowrap}
+
+/* tiles */
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px}
+.tile{display:flex;flex-direction:column;align-items:flex-start;gap:10px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;min-height:112px}
+.tile svg{width:26px;height:26px;stroke:var(--accent);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tile b{font-size:16px;line-height:1.2}
+.tile small{color:var(--ink2);font-size:13px;line-height:1.3}
+.linkbtn{background:none;border:0;color:var(--accent);font-weight:700;padding:8px 2px;font-size:15px}
+.center{text-align:center;margin-bottom:14px}
+
+/* platforms */
+.plat{display:grid;gap:16px}
+.plat-row .head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-weight:700}
+.plat-row .head span:first-child{display:flex;align-items:center;gap:8px}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block;background:var(--ink2);flex:none}
+.dot.uber{background:var(--uber)}.dot.didi{background:var(--didi)}
+.track{height:8px;border-radius:999px;background:var(--surface2);margin:8px 0 6px;overflow:hidden}
+.track i{display:block;height:100%;border-radius:999px}
+.plat-row small{color:var(--ink2);font-size:13px}
+
+/* records */
+.seg{display:flex;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px;margin-bottom:12px}
+.seg button{flex:1;border:0;background:transparent;border-radius:9px;padding:9px 6px;font-weight:600;font-size:14px}
+.seg button[aria-pressed="true"],.seg label:has(input:checked){background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.seg label{flex:1;text-align:center;border-radius:9px;padding:9px 6px;font-weight:600;font-size:14px;cursor:pointer;display:block}
+.seg input{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
+.seg label:has(input:focus-visible){outline:3px solid var(--accent);outline-offset:1px}
+.tools{display:flex;gap:8px;margin-bottom:12px}
+.tools .chips{margin:0;flex:none}
+.list{display:flex;flex-direction:column}
+.row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--line);padding:13px 2px}
+.row:last-child{border-bottom:0}
+.row-main{flex:1;min-width:0}
+.row-main b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row-main small{color:var(--ink2);font-size:13px}
+.amt{font-weight:700;white-space:nowrap}
+.amt.inc{color:var(--keep)}.amt.exp{color:var(--ink)}
+.empty{padding:28px 8px;text-align:center;color:var(--ink2)}
+.rgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rcard{background:var(--surface2);border:1px solid var(--line);border-radius:14px;padding:0;overflow:hidden;text-align:left}
+.rcard img{width:100%;height:120px;object-fit:cover;display:block}
+.rcard div{padding:9px 11px}
+.rcard b{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rcard small{color:var(--ink2);font-size:12.5px}
+
+/* gst */
+.gst-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.gst-grid>div{background:var(--surface2);border-radius:14px;padding:13px}
+.gst-grid span{display:block;font-size:13px;color:var(--ink2)}
+.gst-grid strong{display:block;margin-top:4px;font-size:21px;font-family:var(--display)}
+.gst-grid .pay{grid-column:1/-1;background:var(--ink);color:var(--paper)}
+.gst-grid .pay span{color:inherit;opacity:.75}
+.gst-grid .pay strong{font-size:32px}
+.note{margin:14px 0 0;padding:12px 14px;border-radius:12px;background:var(--warnbg);color:var(--warnink);font-size:14px}
+.btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.btn{border:0;border-radius:12px;padding:12px 16px;font-weight:700;background:var(--ink);color:var(--paper);min-height:46px}
+.btn.alt{background:var(--surface2);color:var(--ink);border:1px solid var(--line)}
+.btn.danger{background:var(--errbg);color:var(--errink)}
+.btn.main{background:var(--accent);color:var(--accent-ink)}
+.btn.block{width:100%}
+.btn:disabled{opacity:.5}
+
+/* nav + fab */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:1px solid var(--line);display:flex;padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px))}
+.tabs button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;border:0;background:transparent;padding:6px 2px;font-size:12px;font-weight:600;color:var(--ink2);border-radius:12px}
+.tabs svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tabs button[aria-selected="true"]{color:var(--accent)}
+.fab{position:fixed;right:16px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:29;border:0;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-weight:700;padding:14px 20px;box-shadow:0 6px 18px rgba(0,0,0,.25);font-size:16px}
+
+/* sheet */
+.scrim{position:fixed;inset:0;z-index:50;background:var(--scrim);display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);width:min(640px,100%);max-height:92%;overflow:auto;border-radius:22px 22px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));animation:up .22s ease-out;outline:0}
+@keyframes up{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.sheet{animation:none}}
+.sheet-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}
+.x{width:40px;height:40px;border-radius:12px;border:0;background:var(--surface2);font-size:20px;line-height:1}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form .full{grid-column:1/-1}
+.field{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600;color:var(--ink2)}
+.field .with{display:flex;gap:8px}
+.field .with button{border:1.5px solid var(--line);background:var(--surface2);border-radius:12px;padding:0 12px;font-weight:700;font-size:14px;white-space:nowrap}
+.amount-in{font-family:var(--display);font-size:30px!important;font-weight:700;padding:12px 14px!important}
+.plats{display:flex;gap:8px;flex-wrap:wrap}
+.plats label{border:1.5px solid var(--line);border-radius:999px;padding:8px 14px;font-weight:600;font-size:14px;cursor:pointer;color:var(--ink)}
+.plats label:has(input:checked){background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.plats input{position:absolute;opacity:0;pointer-events:none}
+.plats label:has(input:focus-visible){outline:3px solid var(--accent);outline-offset:2px}
+.err{margin:12px 0 0;padding:10px 12px;border-radius:10px;background:var(--errbg);color:var(--errink);font-size:14px;font-weight:600}
+.sticky-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+.sticky-actions .btn{flex:1}
+.preview{background:var(--surface2);border-radius:14px;padding:12px 14px;margin-top:14px;font-size:14px}
+.preview div{display:flex;justify-content:space-between;gap:10px;padding:3px 0}
+.preview b{font-weight:600}
+.chip-note{display:inline-block;background:var(--surface2);border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:600;margin:0 0 12px}
+details{margin-top:14px}
+summary{cursor:pointer;font-weight:600;color:var(--ink2);font-size:14px}
+.text-preview{white-space:pre-wrap;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:10px;max-height:180px;overflow:auto;font-size:12px;margin-top:8px}
+.shot{width:100%;max-height:34vh;object-fit:contain;border-radius:14px;background:var(--surface2);margin-bottom:14px}
+.spin{width:26px;height:26px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp 1s linear infinite;margin:6px 0 12px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation-duration:3s}}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom,0px));z-index:70;background:var(--ink);color:var(--paper);padding:11px 18px;border-radius:999px;font-weight:600;font-size:14px;max-width:90%;text-align:center}
+.dlg-card{background:var(--surface);border-radius:20px;padding:20px;width:min(420px,calc(100% - 32px));margin:auto}
+.scrim.center-scrim{align-items:center;z-index:60}
+.dlg-card p{margin:8px 0 0;color:var(--ink2)}
+.dlg-card .sticky-actions{margin-top:20px}
+.kv{display:grid;grid-template-columns:1fr auto;gap:8px 12px;margin:0}
+.kv dt{color:var(--ink2)}.kv dd{margin:0;font-weight:700;text-align:right}
+@media (max-width:420px){.form{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-row">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><rect x="2" y="13" width="28" height="10" rx="4"/><rect x="9" y="7" width="14" height="8"/><circle cx="9" cy="24" r="3"/><circle cx="23" cy="24" r="3"/></svg>
+      <span>RideLedger</span>
+    </div>
+    <div class="pnav">
+      <button id="pPrev" aria-label="Previous period">&#8249;</button>
+      <div id="pLabel" aria-live="polite"></div>
+      <button id="pNext" aria-label="Next period">&#8250;</button>
+    </div>
+  </div>
+  <div class="chips" id="ranges">
+    <button class="chip" data-range="week" aria-pressed="false">Week</button>
+    <button class="chip" data-range="month" aria-pressed="true">Month</button>
+    <button class="chip" data-range="quarter" aria-pressed="false">BAS quarter</button>
+    <button class="chip" data-range="fy" aria-pressed="false">Financial year</button>
+    <button class="chip" data-range="all" aria-pressed="false">All time</button>
+  </div>
+</header>
+
+<main>
+  <section id="tab-home"></section>
+
+  <section id="tab-records" hidden>
+    <div class="seg" id="recView">
+      <button data-v="tx" aria-pressed="true">Transactions</button>
+      <button data-v="rc" aria-pressed="false">Receipts</button>
+    </div>
+    <div class="tools" id="txTools">
+      <div class="chips" id="recFilter">
+        <button class="chip" data-f="all" aria-pressed="true">All</button>
+        <button class="chip" data-f="income" aria-pressed="false">Income</button>
+        <button class="chip" data-f="expense" aria-pressed="false">Expenses</button>
+      </div>
+      <input id="recSearch" type="search" placeholder="Search" aria-label="Search transactions">
+    </div>
+    <div class="card" id="recList"></div>
+  </section>
+
+  <section id="tab-gst" hidden></section>
+  <section id="tab-data" hidden></section>
+</main>
+
+<button class="fab" id="fab" data-act="add-sheet" hidden>+ Add</button>
+
+<nav class="tabs" role="tablist" aria-label="Sections">
+  <button role="tab" data-tab="home" aria-selected="true"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</button>
+  <button role="tab" data-tab="records" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>Records</button>
+  <button role="tab" data-tab="gst" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M19 5L5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/></svg>GST &amp; reports</button>
+  <button role="tab" data-tab="data" aria-selected="false"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>Backup</button>
+</nav>
+
+<div class="scrim" id="sheetWrap" hidden>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" tabindex="-1">
+    <div class="sheet-head"><h2 id="sheetTitle"></h2><button class="x" id="sheetClose" aria-label="Close">&#10005;</button></div>
+    <div id="sheetBody"></div>
+  </div>
+</div>
+
+<div class="scrim center-scrim" id="dlg" hidden>
+  <div class="dlg-card" role="alertdialog" aria-modal="true" aria-labelledby="dlgTitle" aria-describedby="dlgMsg">
+    <h3 id="dlgTitle"></h3><p id="dlgMsg"></p>
+    <div class="sticky-actions"><button class="btn alt" id="dlgNo"></button><button class="btn" id="dlgYes"></button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<input id="fPdf" type="file" accept="application/pdf,.pdf" multiple hidden>
+<input id="fImg" type="file" accept="image/*" hidden>
+<input id="fJson" type="file" accept="application/json,.json" hidden>
+
+<script>
+"use strict";
+/* ---------- helpers ---------- */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money=v=>new Intl.NumberFormat("en-AU",{style:"currency",currency:"AUD"}).format(Number(v||0));
+const pad=n=>String(n).padStart(2,"0");
+const iso=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;   /* local date, not UTC */
+const today=()=>iso(new Date());
+const num=v=>{const n=Number(String(v??"").replace(/[$,A\s]/g,""));return isFinite(n)?n:0};
+const r2=n=>Math.round((n+Number.EPSILON)*100)/100;
+const sum=(a,f)=>a.reduce((s,x)=>s+f(x),0);
+const hashText=s=>{let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(16)};
+const shortDate=d=>d.toLocaleDateString("en-AU",{day:"numeric",month:"short"});
+const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+
+/* ---------- database (same name/version/stores as V1-V4, so existing data keeps working) ---------- */
+const DB_NAME="RideLedgerDB",DB_VERSION=1;let db;
+function openDb(){return new Promise((resolve,reject)=>{
+  const req=indexedDB.open(DB_NAME,DB_VERSION);
+  req.onupgradeneeded=()=>{const d=req.result;
+    if(!d.objectStoreNames.contains("transactions")){const s=d.createObjectStore("transactions",{keyPath:"id",autoIncrement:true});s.createIndex("date","date");s.createIndex("platform","platform");s.createIndex("importHash","importHash",{unique:false})}
+    if(!d.objectStoreNames.contains("receipts")){const s=d.createObjectStore("receipts",{keyPath:"id",autoIncrement:true});s.createIndex("date","date")}};
+  req.onsuccess=()=>{db=req.result;resolve(db)};req.onerror=()=>reject(req.error)})}
+const st=(n,m="readonly")=>db.transaction(n,m).objectStore(n);
+const wrap=r=>new Promise((res,rej)=>{r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+const getAll=n=>wrap(st(n).getAll());
+const add=(n,o)=>wrap(st(n,"readwrite").add(o));
+const put=(n,o)=>wrap(st(n,"readwrite").put(o));
+const del=(n,id)=>wrap(st(n,"readwrite").delete(id));
+const clearStore=n=>wrap(st(n,"readwrite").clear());
+function deleteByImportHash(hash){return new Promise((resolve,reject)=>{
+  const req=st("transactions","readwrite").openCursor();
+  req.onsuccess=()=>{const c=req.result;if(!c){resolve();return}const h=c.value?.importHash||"";if(h===hash||h.startsWith(hash+"-"))c.delete();c.continue()};
+  req.onerror=()=>reject(req.error)})}
+
+/* ---------- state ---------- */
+const state={tx:[],rc:[]};
+let range="month",offset=0,tab="home",recView="tx",recFilter="all",recQuery="";
+
+/* ---------- periods ---------- */
+function startOfWeek(d){const x=new Date(d);const day=x.getDay()||7;x.setDate(x.getDate()-day+1);x.setHours(0,0,0,0);return x}
+function period(){
+  const now=new Date();let start,end,label;
+  if(range==="week"){start=startOfWeek(now);start.setDate(start.getDate()+offset*7);end=new Date(start);end.setDate(end.getDate()+6);
+    label=offset===0?"This week":`${shortDate(start)} to ${shortDate(end)}`}
+  else if(range==="month"){start=new Date(now.getFullYear(),now.getMonth()+offset,1);end=new Date(start.getFullYear(),start.getMonth()+1,0);
+    label=start.toLocaleString("en-AU",{month:"long",year:"numeric"})}
+  else if(range==="quarter"){const q=Math.floor(now.getMonth()/3)+offset;start=new Date(now.getFullYear(),q*3,1);end=new Date(start.getFullYear(),start.getMonth()+3,0);
+    const m=start.getMonth(),fyStart=m>=6?start.getFullYear():start.getFullYear()-1,bq=m>=6?Math.floor((m-6)/3)+1:Math.floor((m+6)/3)+1;
+    label=`Q${bq} FY${String(fyStart).slice(-2)}/${String(fyStart+1).slice(-2)}`;
+    var sub=`${start.toLocaleString("en-AU",{month:"short"})} to ${end.toLocaleString("en-AU",{month:"short",year:"numeric"})}`}
+  else if(range==="fy"){const sy=(now.getMonth()>=6?now.getFullYear():now.getFullYear()-1)+offset;start=new Date(sy,6,1);end=new Date(sy+1,5,30);label=`FY ${sy}/${String(sy+1).slice(-2)}`}
+  else{start=new Date(2000,0,1);end=new Date(2100,0,1);label="All time"}
+  return{start,end,s:iso(start),e:iso(end),label,sub:sub||""}}
+const inPeriod=(x,p)=>x.date&&x.date>=p.s&&x.date<=p.e;
+const periodTx=()=>{const p=period();return state.tx.filter(x=>inPeriod(x,p))};
+const rangeText=p=>range==="all"?"Every record on this device":`${p.s} to ${p.e}`;
+
+function summarize(list){
+  const inc=list.filter(x=>x.type==="income"),exp=list.filter(x=>x.type==="expense");
+  const uber=sum(inc.filter(x=>x.platform==="Uber"),x=>num(x.amount)),didi=sum(inc.filter(x=>x.platform==="DiDi"),x=>num(x.amount));
+  const income=sum(inc,x=>num(x.amount)),expenses=sum(exp,x=>num(x.amount));
+  const fees=sum(exp.filter(x=>/platform fee/i.test(x.description||"")),x=>num(x.amount));
+  const other=Math.max(0,expenses-fees);
+  const g1=sum(inc.filter(x=>x.includeG1!==false),x=>num(x.amount));
+  const oneA=sum(inc,x=>num(x.gst)),oneB=sum(exp,x=>num(x.gst)),gst=oneA-oneB;
+  const uberCharges=sum(exp.filter(x=>x.platform==="Uber"),x=>num(x.amount)),didiCharges=sum(exp.filter(x=>x.platform==="DiDi"),x=>num(x.amount));
+  return{income,expenses,fees,other,g1,oneA,oneB,gst,uber,didi,uberCharges,didiCharges,uberNet:uber-uberCharges,didiNet:didi-didiCharges,
+    real:income-expenses-gst,km:sum(inc,x=>num(x.km)),count:list.length}}
+
+/* ---------- ui primitives ---------- */
+let toastT;function toast(m){const t=$("toast");t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,2600)}
+let sheetOnClose=null;
+function openSheet(title,html,onClose){$("sheetTitle").textContent=title;$("sheetBody").innerHTML=html;$("sheetWrap").hidden=false;document.body.classList.add("lock");sheetOnClose=onClose||null;$("sheet").scrollTop=0;setTimeout(()=>$("sheet").focus(),0)}
+function setSheet(title,html){$("sheetTitle").textContent=title;$("sheetBody").innerHTML=html}
+function closeSheet(silent){$("sheetWrap").hidden=true;$("sheetBody").innerHTML="";document.body.classList.remove("lock");const f=sheetOnClose;sheetOnClose=null;if(f&&!silent)f()}
+$("sheetClose").onclick=()=>closeSheet();
+$("sheetWrap").addEventListener("click",e=>{if(e.target.id==="sheetWrap")closeSheet()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){if(!$("dlg").hidden)$("dlgNo").click();else if(!$("sheetWrap").hidden)closeSheet()}});
+function askConfirm({title,message,ok="OK",cancel="Cancel",danger=false}){return new Promise(res=>{
+  $("dlgTitle").textContent=title;$("dlgMsg").textContent=message;$("dlgYes").textContent=ok;$("dlgNo").textContent=cancel;
+  $("dlgYes").className="btn"+(danger?" danger":" main");$("dlg").hidden=false;$("dlgYes").focus();
+  const done=v=>{$("dlg").hidden=true;res(v)};$("dlgYes").onclick=()=>done(true);$("dlgNo").onclick=()=>done(false)})}
+
+/* ---------- saving files (works on GitHub Pages and inside Claude) ---------- */
+async function saveFile(name,blob){
+  try{const d=window.claude&&window.claude.use?await window.claude.use("downloads"):null;
+    if(d){await d.save({filename:name,data:blob});toast("Saved "+name);return true}}
+  catch(e){if(e&&e.code==="declined")return false}
+  try{const f=new File([blob],name,{type:blob.type});
+    if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:name});return true}}catch(e){if(e&&e.name==="AbortError")return false}
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);toast("Saved "+name);return true}
+
+/* ---------- PDF reading (PDF.js loads only when needed) ---------- */
+let pdfjsP;
+function loadPdfJs(){
+  const got=()=>window.pdfjsLib||window["pdfjs-dist/build/pdf"];
+  if(got())return Promise.resolve(got());
+  if(!pdfjsP)pdfjsP=new Promise((res,rej)=>{const s=document.createElement("script");
+    s.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+    s.onload=()=>{
+      const lib=got();
+      if(!lib){pdfjsP=null;rej(new Error("The PDF reader loaded but was not in the expected format. Try again."));return}
+      window.pdfjsLib=lib;
+      lib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      res(lib)};
+    s.onerror=()=>{pdfjsP=null;rej(new Error("The PDF reader could not load. Check your internet connection and try again."))};document.head.appendChild(s)});
+  return pdfjsP}
+async function readPdfText(file){
+  const lib=await loadPdfJs();const data=new Uint8Array(await file.arrayBuffer());
+  const pdf=await lib.getDocument({data}).promise;let text="";
+  for(let i=1;i<=pdf.numPages;i++){const p=await pdf.getPage(i),c=await p.getTextContent();text+=c.items.map(x=>x.str).join(" ")+"\n"}
+  return text}
+const match=(t,rx)=>{const m=t.match(rx);return m?m[1].trim():""};
+function parseDiDi(text){
+  const period=match(text,/Tax Summary for the Period\s+(\d{2}\/\d{4})/i);
+  const gross=num(match(text,/Gross Rider Fares\s+A?\$?\s*([\d,]+\.\d{2})/i));
+  const rewards=num(match(text,/Rewards\s+A?\$?\s*([\d,]+\.\d{2})/i));
+  const fee=num(match(text,/DiDi Service Fee\s+A?\$?\s*([\d,]+\.\d{2})/i));
+  const km=num(match(text,/ON TRIP DISTANCE\s+([\d,.]+)\s*Km/i));
+  let date=today();if(period){const [mm,yy]=period.split("/");date=`${yy}-${mm}-01`}
+  return{date,gross,rewards,fee,km,period}}
+function parseUber(text){
+  const period=match(text,/Weekly Statement\s+(\d{1,2}\s*[A-Za-z]{3},\s*\d{4}\s*\d{1,2}(?:am|pm)\s*-\s*\d{1,2}\s*[A-Za-z]{3},\s*\d{4}\s*\d{1,2}(?:am|pm))/i)
+    ||match(text,/(\d{1,2}\s*[A-Za-z]{3},\s*\d{4}\s*\d{1,2}(?:am|pm)\s*-\s*\d{1,2}\s*[A-Za-z]{3},\s*\d{4}\s*\d{1,2}(?:am|pm))/i);
+  const earnings=num(match(text,/Your earnings\s+\$?\s*([\d,]+\.\d{2})/i));
+  const fare=num(match(text,/Breakdown of Your earnings[\s\S]*?Fare\s+\$?\s*([\d,]+\.\d{2})/i));
+  const serviceFee=Math.abs(num(match(text,/Service Fee\s+-?\$?\s*([\d,]+\.\d{2})/i)));
+  const tips=num(match(text,/Tip\s+\$?\s*([\d,]+\.\d{2})/i));
+  const refunds=Math.abs(num(match(text,/Refunds\s*&\s*Expenses\s+-?\$?\s*([\d,]+\.\d{2})/i)));
+  const payouts=num(match(text,/Payouts\s+\$?\s*([\d,]+\.\d{2})/i));
+  let date=today();const dm=text.match(/(\d{1,2})\s*([A-Za-z]{3}),\s*(\d{4})/i);
+  if(dm){const M={Jan:"01",Feb:"02",Mar:"03",Apr:"04",May:"05",Jun:"06",Jul:"07",Aug:"08",Sep:"09",Oct:"10",Nov:"11",Dec:"12"};
+    date=`${dm[3]}-${M[dm[2][0].toUpperCase()+dm[2].slice(1,3).toLowerCase()]||"01"}-${pad(dm[1])}`}
+  return{period,date,earnings,fare,serviceFee,tips,refunds,payouts}}
+const isUberMonthly=t=>/uber/i.test(t)&&/tax summary/i.test(t)&&/transportation income/i.test(t)&&!/weekly statement/i.test(t);
+const MONTHS3={January:"01",February:"02",March:"03",April:"04",May:"05",June:"06",July:"07",August:"08",September:"09",October:"10",November:"11",December:"12"};
+function parseUberMonthly(text){
+  const pm=text.match(/(\d{1,2})\s*-\s*(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
+  const period=pm?`${pm[1]}-${pm[2]} ${pm[3]} ${pm[4]}`:"";
+  const date=pm?`${pm[4]}-${MONTHS3[pm[3]]||"01"}-01`:today();
+  const transportIncome=num(match(text,/(?<!Total )Transportation income\s*\$?([\d,]+\.\d{2})/i))||num(match(text,/Transportation income\s*\$?([\d,]+\.\d{2})/i));
+  const deliveryIncome=num(match(text,/Delivery income\s*\$?([\d,]+\.\d{2})/i));
+  const otherIncome=num(match(text,/Other Income\s*\$?([\d,]+\.\d{2})/i));
+  const serviceFee=num(match(text,/Uber service fee[^$]{0,40}\$?([\d,]+\.\d{2})/i));
+  const otherCharges=num(match(text,/Other charges from Uber\s*\$?([\d,]+\.\d{2})/i));
+  const km=num(match(text,/([\d,.]+)\s*km[\s\S]{0,20}?On[\s-]?Trip Mileage/i));
+  const trips=num(match(text,/(\d+)[\s\S]{0,10}?\bTrips\b/i));
+  return{period,date,transportIncome,deliveryIncome,otherIncome,serviceFee,otherCharges,km,trips}}
+const detectKind=t=>/tax summary for the period|didi/i.test(t)?"DiDi":/weekly statement|uber|tax summary/i.test(t)?"Uber":null;
+
+/* ---------- import queue + review ---------- */
+let queue=[],queueTotal=0,queueHint="Uber";
+function startQueue(files,hint){queue=files.map(f=>({file:f}));queueTotal=files.length;queueHint=hint;nextInQueue()}
+async function nextInQueue(){
+  if(!queue.length){closeSheet(true);return}
+  const item=queue.shift(),n=queueTotal-queue.length;
+  openSheet("Reading PDF",`<div class="spin" aria-hidden="true"></div><p>Reading <b>${esc(item.file.name)}</b>${queueTotal>1?` (${n} of ${queueTotal})`:""}...</p>`,()=>{queue=[]});
+  try{const text=await readPdfText(item.file);
+    const det=detectKind(text);let kind=queueHint==="Bank"?"Bank":(det||queueHint);
+    const notice=det&&queueHint!=="Bank"&&det!==queueHint?`This looks like a ${det} statement, so the ${det} fields are shown.`:(text.trim().length<30?"This PDF has no readable text (it may be a scan). Enter the numbers by hand below.":"");
+    openReview({file:item.file,text,kind,notice,n,total:queueTotal})}
+  catch(e){setSheet("Could not read PDF",`<p class="err">${esc(e.message||e)}</p><p class="muted">You can still enter this statement by hand.</p><div class="sticky-actions"><button class="btn alt" id="skipBtn">${queue.length?"Skip":"Close"}</button><button class="btn main" id="manualBtn">Add by hand</button></div>`);
+    $("skipBtn").onclick=()=>{sheetOnClose=null;queue.length?nextInQueue():closeSheet(true)};$("manualBtn").onclick=()=>{queue=[];sheetOnClose=null;openTxForm(null)}}}
+
+const fld=(id,label,val,ph="",extra="")=>`<label class="field">${label}<div class="with"><input id="${id}" type="number" inputmode="decimal" step="0.01" value="${val||""}" placeholder="${ph}">${extra}</div></label>`;
+const gstBtn=(target,src)=>`<button type="button" data-gst="${target}" data-from="${src}" aria-label="Calculate GST as one eleventh">1/11</button>`;
+function openReview(ctx){
+  const{file,text}=ctx;let kind=ctx.kind;const h=hashText(`${kind}|${file.name}|${text.slice(0,500)}`);
+  function draw(){
+    const hh=hashText(`${kind}|${file.name}|${text.slice(0,500)}`);
+    let fields="",pd="";
+    if(kind==="DiDi"){const d=parseDiDi(text);
+      fields=`<label class="field">Statement date<input id="rDate" type="date" value="${d.date}"></label>
+      ${fld("rAmount","Gross rider fares",d.gross)}
+      ${fld("rGstSales","GST on sales (1A)","","from tax invoice",gstBtn("rGstSales","rAmount"))}
+      ${fld("rFee","DiDi service fee",d.fee)}
+      ${fld("rGstFee","GST credit on fee (1B)","","from tax invoice",gstBtn("rGstFee","rFee"))}
+      ${fld("rRewards","Rewards",d.rewards)}
+      ${fld("rKm","On-trip km",d.km)}
+      <label class="field full" style="flex-direction:row;align-items:center;gap:10px;font-weight:500;color:var(--ink)"><input id="rAddRewards" type="checkbox" style="width:22px;height:22px"> Also record rewards as income</label>`;
+      pd=d.period?`Statement period ${d.period}`:"Period not detected"}
+    else if(kind==="Uber"&&isUberMonthly(text)){const d=parseUberMonthly(text);
+      fields=`<label class="field">Statement date<input id="rDate" type="date" value="${d.date}"></label>
+      ${fld("rTransport","Transportation income",d.transportIncome)}
+      ${fld("rDelivery","Delivery income",d.deliveryIncome)}
+      ${fld("rOtherInc","Other income (tips etc)",d.otherIncome)}
+      ${fld("rGstSales","GST on sales (1A)","","from tax invoice",gstBtn("rGstSales","rSalesM"))}
+      ${fld("rFee","Uber service fee",d.serviceFee)}
+      ${fld("rOtherCharge","Other charges from Uber",d.otherCharges)}
+      ${fld("rGstFee","GST credit on fee (1B)","","from tax invoice",gstBtn("rGstFee","rFeeM"))}
+      ${fld("rKm","On-trip km",d.km)}`;
+      pd=(d.period?`Monthly tax summary, period ${d.period}`:"Monthly tax summary")+(d.trips?`, ${d.trips} trips`:"")+". Tolls, airport and government charges shown separately in the PDF are already included in transportation income, so they are not entered again here"}
+    else if(kind==="Uber"){const d=parseUber(text);
+      fields=`<label class="field">Statement date<input id="rDate" type="date" value="${d.date}"></label>
+      ${fld("rEarn","Your earnings",d.earnings)}
+      ${fld("rFare","Fare",d.fare)}
+      ${fld("rTips","Tips",d.tips)}
+      ${fld("rGstSales","GST on sales (1A)","","from tax invoice",gstBtn("rGstSales","rSales"))}
+      ${fld("rFee","Uber service fee",d.serviceFee)}
+      ${fld("rGstFee","GST credit on fee (1B)","","from tax invoice",gstBtn("rGstFee","rFee"))}
+      ${fld("rRefunds","Refunds & expenses",d.refunds)}
+      ${fld("rPayouts","Payouts (for reference)",d.payouts)}`;
+      pd=d.period?`Weekly statement period ${d.period}`:"Weekly statement, period not detected"}
+    else{fields=`<label class="field">Date<input id="rDate" type="date" value="${today()}"></label>
+      <label class="field">Type<select id="rType"><option value="expense">Expense</option><option value="income">Income</option></select></label>
+      ${fld("rAmount","Amount","")}
+      ${fld("rGstSales","GST","","",gstBtn("rGstSales","rAmount"))}
+      <label class="field full">Description<input id="rDesc" value="Bank PDF import"></label>`;pd="Bank statements vary a lot, so enter the line you want to record."}
+    setSheet(`${kind} statement${ctx.total>1?` (${ctx.n} of ${ctx.total})`:""}`,`
+      ${ctx.notice?`<p class="note" style="margin:0 0 12px">${esc(ctx.notice)}</p>`:""}
+      <label class="field" style="margin-bottom:12px">Statement type<select id="rKind"><option>Uber</option><option>DiDi</option><option>Bank</option></select></label>
+      <p class="muted" style="margin:0 0 12px">${esc(file.name)}. ${esc(pd)}. Check every number before saving.</p>
+      <div class="form">${fields}</div>
+      <div class="preview" id="rPreview" aria-live="polite"></div>
+      <p class="err" id="rErr" hidden></p>
+      <details><summary>Text found in the PDF</summary><div class="text-preview">${esc(text.slice(0,2500))}</div></details>
+      <div class="sticky-actions">${queue.length||ctx.total>1?`<button class="btn alt" id="rSkip">Skip</button>`:`<button class="btn alt" id="rCancel">Cancel</button>`}<button class="btn main" id="rSave">Save import</button></div>`);
+    $("rKind").value=kind;
+    $("rKind").onchange=e=>{kind=e.target.value;ctx.notice="";draw()};
+    const skip=$("rSkip")||$("rCancel");skip.onclick=()=>{if(queue.length){sheetOnClose=null;nextInQueue()}else closeSheet()};
+    $("sheetBody").oninput=updatePreview;
+    $("sheetBody").onclick=e=>{const b=e.target.closest("[data-gst]");if(!b)return;
+      let from;if(b.dataset.from==="rSales")from=salesAmount();else if(b.dataset.from==="rSalesM")from=g("rTransport")+g("rDelivery")+g("rOtherInc");else if(b.dataset.from==="rFeeM")from=g("rFee")+g("rOtherCharge");else from=num($(b.dataset.from)?.value);
+      $(b.dataset.gst).value=from>0?r2(from/11):"";updatePreview()};
+    $("rSave").onclick=save;updatePreview();
+    function g(id){return num($(id)?.value)}
+    function salesAmount(){const fare=g("rFare"),tips=g("rTips");return fare>0?fare+tips:g("rEarn")}
+    function rows(){
+      const date=$("rDate").value,out=[],hs=hh,monthly=kind==="Uber"&&isUberMonthly(text);
+      if(kind==="DiDi"){const gross=g("rAmount"),fee=g("rFee");
+        if(gross>0)out.push({date,type:"income",platform:"DiDi",description:`DiDi PDF - ${file.name}`,amount:gross,gst:g("rGstSales"),includeG1:true,km:g("rKm")||undefined,importHash:hs});
+        if($("rAddRewards")?.checked&&g("rRewards")>0)out.push({date,type:"income",platform:"DiDi",description:"DiDi rewards",amount:g("rRewards"),gst:0,includeG1:true,importHash:hs+"-rewards"});
+        if(fee>0)out.push({date,type:"expense",platform:"DiDi",description:"DiDi platform fee",amount:fee,gst:g("rGstFee"),importHash:hs+"-fee"})}
+      else if(monthly){const s=g("rTransport")+g("rDelivery")+g("rOtherInc"),fee=g("rFee")+g("rOtherCharge");
+        if(s>0)out.push({date,type:"income",platform:"Uber",description:`Uber monthly tax summary - ${file.name}`,amount:s,gst:g("rGstSales"),includeG1:true,km:g("rKm")||undefined,importHash:hs});
+        if(fee>0)out.push({date,type:"expense",platform:"Uber",description:"Uber platform fee",amount:fee,gst:g("rGstFee"),importHash:hs+"-fee"})}
+      else if(kind==="Uber"){const s=salesAmount(),fee=g("rFee"),ref=g("rRefunds");
+        if(s>0)out.push({date,type:"income",platform:"Uber",description:`Uber weekly statement - ${file.name}; Your earnings ${$("rEarn").value||"0"}; Payouts ${$("rPayouts").value||"0"}`,amount:s,gst:g("rGstSales"),includeG1:true,importHash:hs});
+        if(fee>0)out.push({date,type:"expense",platform:"Uber",description:"Uber platform fee",amount:fee,gst:g("rGstFee"),importHash:hs+"-fee"});
+        if(ref>0)out.push({date,type:"expense",platform:"Uber",description:"Uber refunds & expenses",amount:ref,gst:0,importHash:hs+"-refunds"})}
+      else{const a=g("rAmount");if(a>0)out.push({date,type:$("rType").value,platform:"Bank",description:$("rDesc").value||"Bank PDF import",amount:a,gst:g("rGstSales"),includeG1:$("rType").value==="income",importHash:hs})}
+      return out}
+    function updatePreview(){const r=rows();
+      $("rPreview").innerHTML=r.length?r.map(x=>`<div><b>${x.type==="income"?"Income":"Expense"}: ${esc(x.description.length>34?x.description.slice(0,34)+"...":x.description)}</b><span class="num">${money(x.amount)}${x.gst?` (GST ${money(x.gst)})`:""}</span></div>`).join(""):`<div><b>Nothing to save yet</b><span>Enter an amount</span></div>`}
+    async function save(){
+      const r=rows(),err=$("rErr");
+      if(!$("rDate").value){err.textContent="Choose a date.";err.hidden=false;return}
+      if(!r.length){err.textContent="Enter at least one amount above zero.";err.hidden=false;return}
+      const hs=hh,exists=state.tx.some(x=>x.importHash===hs||(x.importHash||"").startsWith(hs+"-"));
+      if(exists){const rep=await askConfirm({title:"Already imported",message:"This statement is already saved. Replace the earlier import with these numbers?",ok:"Replace",cancel:"Keep existing"});if(!rep)return;await deleteByImportHash(hs)}
+      for(const x of r)await add("transactions",x);
+      toast(`Saved ${r.length} record${r.length>1?"s":""}`);await refresh();
+      if(queue.length){sheetOnClose=null;nextInQueue()}else closeSheet(true)}
+  }
+  draw()}
+
+/* ---------- add / edit transactions ---------- */
+const CATS=["Fuel","Car wash","Service & repairs","Tyres","Parking","Phone","Tolls","Insurance","Registration","Cleaning","Other"];
+function openTxForm(tx){
+  const edit=!!tx;const t=tx||{date:today(),type:"income",platform:"Uber",amount:"",gst:"",description:"",category:""};
+  const plats=["Uber","DiDi","Bank","Other"].map(p=>`<label><input type="radio" name="mPlat" value="${p}" ${t.platform===p?"checked":""}>${p}</label>`).join("");
+  openSheet(edit?"Edit transaction":"Add transaction",`
+    <div class="seg" role="radiogroup" aria-label="Type"><label><input type="radio" name="mType" value="income" ${t.type==="income"?"checked":""}>Income</label><label><input type="radio" name="mType" value="expense" ${t.type==="expense"?"checked":""}>Expense</label></div>
+    <div class="form">
+      <label class="field full">Amount (AUD)<input id="mAmount" class="amount-in" type="number" inputmode="decimal" step="0.01" value="${t.amount||""}" placeholder="0.00"></label>
+      <div class="field full">Platform<div class="plats">${plats}</div></div>
+      <label class="field">Date<input id="mDate" type="date" value="${esc(t.date)}"></label>
+      <label class="field" id="mCatWrap">Category<select id="mCat"><option value="">None</option>${CATS.map(c=>`<option ${t.category===c?"selected":""}>${c}</option>`).join("")}</select></label>
+      <label class="field full">Description<input id="mDesc" value="${esc(t.description)}" placeholder="What is this for?"></label>
+      <label class="field full">GST amount<div class="with"><input id="mGst" type="number" inputmode="decimal" step="0.01" value="${t.gst||""}" placeholder="0.00"><button type="button" id="mGst11">1/11</button><button type="button" id="mGst0">None</button></div></label>
+    </div>
+    <p class="err" id="mErr" hidden></p>
+    <div class="sticky-actions">${edit?`<button class="btn danger" id="mDel">Delete</button>`:""}<button class="btn main" id="mSave">${edit?"Save changes":"Save"}</button></div>`);
+  const typeVal=()=>document.querySelector('input[name="mType"]:checked').value;
+  const sync=()=>{$("mCatWrap").hidden=typeVal()!=="expense"};sync();
+  document.querySelectorAll('input[name="mType"]').forEach(r=>r.onchange=sync);
+  $("mGst11").onclick=()=>{const a=num($("mAmount").value);$("mGst").value=a>0?r2(a/11):""};
+  $("mGst0").onclick=()=>$("mGst").value="";
+  $("mSave").onclick=async()=>{
+    const amount=num($("mAmount").value),date=$("mDate").value,err=$("mErr");
+    if(!(amount>0)){err.textContent="Enter an amount above zero.";err.hidden=false;$("mAmount").focus();return}
+    if(!date){err.textContent="Choose a date.";err.hidden=false;return}
+    const type=typeVal(),cat=type==="expense"?$("mCat").value:"";let desc=$("mDesc").value.trim();
+    if(cat&&!desc.toLowerCase().startsWith(cat.toLowerCase()))desc=desc?`${cat}: ${desc}`:cat;
+    const rec={...(edit?tx:{}),date,type,platform:document.querySelector('input[name="mPlat"]:checked').value,amount,gst:num($("mGst").value),description:desc||(type==="income"?"Income":"Expense"),category:cat,includeG1:type==="income"};
+    await (edit?put:add)("transactions",rec);closeSheet(true);toast(edit?"Changes saved":"Transaction saved");refresh()};
+  if(edit)$("mDel").onclick=async()=>{
+    if(!await askConfirm({title:"Delete this transaction?",message:`${t.description||"Transaction"} for ${money(t.amount)} will be removed.`,ok:"Delete",danger:true}))return;
+    await del("transactions",tx.id);closeSheet(true);toast("Deleted");refresh()}}
+
+/* ---------- receipts ---------- */
+function toDataUrl(file,max=1400,q=.78){return new Promise((res,rej)=>{
+  const fr=new FileReader();fr.onerror=()=>rej(new Error("Could not read this photo."));
+  fr.onload=()=>{const img=new Image();img.onerror=()=>rej(new Error("This photo format is not supported."));
+    img.onload=()=>{const k=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement("canvas");c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);c.getContext("2d").drawImage(img,0,0,c.width,c.height);res(c.toDataURL("image/jpeg",q))};
+    img.src=fr.result};fr.readAsDataURL(file)})}
+function openReceipt(rec){
+  const edit=rec.id!=null;
+  openSheet(edit?"Receipt":"New receipt",`
+    <img class="shot" src="${rec.imageData}" alt="Receipt photo">
+    <div class="form">
+      <label class="field">Date<input id="cDate" type="date" value="${esc(rec.date||today())}"></label>
+      <label class="field">Category<select id="cCat">${CATS.map(c=>`<option ${rec.category===c?"selected":""}>${c}</option>`).join("")}</select></label>
+      <label class="field full">Vendor<input id="cVendor" value="${esc(rec.vendor||"")}" placeholder="Shop or supplier"></label>
+      <label class="field">Total<input id="cAmount" class="amount-in" style="font-size:22px!important" type="number" inputmode="decimal" step="0.01" value="${rec.amount||""}" placeholder="0.00"></label>
+      <label class="field">GST<div class="with"><input id="cGst" type="number" inputmode="decimal" step="0.01" value="${rec.gst||""}" placeholder="0.00"><button type="button" id="cGst11">1/11</button></div></label>
+    </div>
+    <p class="err" id="cErr" hidden></p>
+    <div class="sticky-actions">${edit?`<button class="btn danger" id="cDel">Delete</button>`:""}<button class="btn main" id="cSave">${edit?"Save changes":"Save receipt and expense"}</button></div>`);
+  $("cGst11").onclick=()=>{const a=num($("cAmount").value);$("cGst").value=a>0?r2(a/11):""};
+  $("cSave").onclick=async()=>{
+    const amount=num($("cAmount").value),err=$("cErr");
+    if(!(amount>0)){err.textContent="Enter the receipt total.";err.hidden=false;return}
+    const r={...rec,date:$("cDate").value||today(),vendor:$("cVendor").value.trim(),category:$("cCat").value,amount,gst:num($("cGst").value)};
+    const desc=`${r.category}: ${r.vendor||"Receipt"}`;
+    if(edit){await put("receipts",r);const link=state.tx.find(x=>x.receiptId===r.id);if(link)await put("transactions",{...link,date:r.date,amount:r.amount,gst:r.gst,description:desc,category:r.category})}
+    else{const id=await add("receipts",r);await add("transactions",{date:r.date,type:"expense",platform:"Other",description:desc,category:r.category,amount:r.amount,gst:r.gst,receiptId:id})}
+    closeSheet(true);toast(edit?"Receipt updated":"Receipt and expense saved");refresh()};
+  if(edit)$("cDel").onclick=async()=>{
+    if(!await askConfirm({title:"Delete this receipt?",message:"The photo and its linked expense will be removed.",ok:"Delete",danger:true}))return;
+    await del("receipts",rec.id);const link=state.tx.find(x=>x.receiptId===rec.id);if(link)await del("transactions",link.id);
+    closeSheet(true);toast("Receipt deleted");refresh()}}
+
+/* ---------- rendering ---------- */
+function renderHeader(){const p=period();$("pLabel").textContent=p.label;$("pPrev").disabled=range==="all";$("pNext").disabled=range==="all"||offset>=0;
+  document.querySelectorAll("#ranges .chip").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.range===range)))}
+function insight(s){
+  if(!state.tx.length)return"Nothing here yet. Import your first Uber or DiDi statement, or add a transaction by hand.";
+  if(s.income<=0)return"No income in this period. Try another period above.";
+  const a=[];
+  if(s.uber>0&&s.didi>0)a.push(s.uberNet>s.didiNet?`Uber left you ${money(s.uberNet-s.didiNet)} more than DiDi after platform charges.`:s.didiNet>s.uberNet?`DiDi left you ${money(s.didiNet-s.uberNet)} more than Uber after platform charges.`:"Uber and DiDi are level after platform charges.");
+  else a.push(s.uber>0?"All income this period came from Uber.":s.didi>0?"All income this period came from DiDi.":"Income this period is not tagged to Uber or DiDi.");
+  if(s.gst>0)a.push(`Set aside about ${money(s.gst)} for GST.`);
+  if(s.km>0)a.push(`That is about ${money(s.income/s.km)} of income per recorded km.`);
+  if(s.expenses/s.income>.35)a.push(`Expenses are ${Math.round(s.expenses/s.income*100)}% of gross income.`);
+  return a.join(" ")}
+function renderHome(){
+  const p=period(),s=summarize(periodTx()),gstPos=Math.max(0,s.gst),keep=Math.max(0,s.real);
+  const tot=keep+s.fees+s.other+gstPos,pc=v=>tot>0?(v/tot*100).toFixed(2):0;
+  const rate=s.income>0?Math.max(0,Math.min(100,Math.round(s.real/s.income*100))):null;
+  const maxG=Math.max(s.uber,s.didi,1);
+  const lb=lsGet("rl_lastBackup"),stale=state.tx.length>0&&(!lb||(Date.now()-Number(lb))>14*864e5);
+  $("tab-home").innerHTML=`
+    ${stale?`<div class="banner"><span>${lb?"It has been over two weeks since your last backup.":"Your data is only stored on this phone and has not been backed up."}</span><button data-act="backup">Back up</button></div>`:""}
+    <div class="card hero">
+      <p class="lbl">You keep</p>
+      <div class="big num ${s.real<0?"neg":""}">${money(s.real)}</div>
+      <p class="sub">${s.income>0?`Out of ${money(s.income)} gross income${rate!==null?`. Keep rate ${rate}%.`:"."}`:`for ${esc(p.label)}`}</p>
+      <div class="bar" role="img" aria-label="Where gross income went: kept ${money(keep)}, platform fees ${money(s.fees)}, other expenses ${money(s.other)}, GST ${money(gstPos)}">
+        <i style="width:${pc(keep)}%;background:var(--keep)"></i><i style="width:${pc(s.fees)}%;background:var(--fee)"></i><i style="width:${pc(s.other)}%;background:var(--exp)"></i><i style="width:${pc(gstPos)}%;background:var(--gst)"></i></div>
+      <dl class="legend">
+        <div><dt><b style="background:var(--keep)"></b>Yours</dt><dd class="num">${money(s.real)}</dd></div>
+        <div><dt><b style="background:var(--fee)"></b>Platform fees</dt><dd class="num">${money(s.fees)}</dd></div>
+        <div><dt><b style="background:var(--exp)"></b>Other expenses</dt><dd class="num">${money(s.other)}</dd></div>
+        <div><dt><b style="background:var(--gst)"></b>GST to set aside</dt><dd class="num">${money(s.gst)}</dd></div>
+      </dl>
+      <p class="insight">${esc(insight(s))}</p>
+    </div>
+    <div class="tiles">
+      <button class="tile" data-act="import-uber"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg><b>Import Uber PDF</b><small>Weekly statement</small></button>
+      <button class="tile" data-act="import-didi"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg><b>Import DiDi PDF</b><small>Monthly tax summary</small></button>
+      <button class="tile" data-act="scan"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg><b>Scan receipt</b><small>Photo, category and GST</small></button>
+      <button class="tile" data-act="manual"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><b>Add by hand</b><small>Income or expense</small></button>
+    </div>
+    <div class="center"><button class="linkbtn" data-act="import-bank">Import a bank statement PDF</button></div>
+    <div class="card"><h3 style="margin-bottom:14px">Uber and DiDi</h3><div class="plat">
+      ${[["Uber","uber",s.uber,s.uberCharges,s.uberNet],["DiDi","didi",s.didi,s.didiCharges,s.didiNet]].map(([n,c,g,ch,net])=>`
+      <div class="plat-row"><div class="head"><span><i class="dot ${c}"></i>${n}</span><span class="num">${money(g)}</span></div>
+        <div class="track"><i style="width:${(g/maxG*100).toFixed(1)}%;background:var(--${c})"></i></div>
+        <small class="num">${money(ch)} in fees and deductions, ${money(net)} left</small></div>`).join("")}
+    </div></div>`}
+function renderRecords(){
+  document.querySelectorAll("#recView button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===recView)));
+  document.querySelectorAll("#recFilter .chip").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.f===recFilter)));
+  $("txTools").hidden=recView!=="tx";const p=period(),box=$("recList");
+  if(recView==="tx"){
+    let l=periodTx().filter(x=>recFilter==="all"||x.type===recFilter);
+    if(recQuery)l=l.filter(x=>`${x.description||""} ${x.platform||""} ${x.category||""}`.toLowerCase().includes(recQuery));
+    l.sort((a,b)=>String(b.date).localeCompare(String(a.date))||(b.id||0)-(a.id||0));
+    box.innerHTML=l.length?`<div class="list">${l.map(x=>`<button class="row" data-tx="${x.id}"><i class="dot ${x.platform==="Uber"?"uber":x.platform==="DiDi"?"didi":""}"></i><span class="row-main"><b>${esc(x.description||x.type)}</b><small>${esc(x.date)}${x.platform?`, ${esc(x.platform)}`:""}${num(x.gst)?`, GST ${money(x.gst)}`:""}</small></span><span class="amt num ${x.type==="income"?"inc":"exp"}">${x.type==="income"?"+":"-"}${money(x.amount)}</span></button>`).join("")}</div>`
+      :`<div class="empty">No transactions in ${esc(p.label)}.<br>Tap Add to create one.</div>`}
+  else{
+    const l=state.rc.filter(r=>inPeriod(r,p)).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+    box.innerHTML=l.length?`<div class="rgrid">${l.map(r=>`<button class="rcard" data-rc="${r.id}"><img src="${r.imageData}" alt="Receipt from ${esc(r.vendor||"unknown")}"><div><b>${esc(r.vendor||"Receipt")}</b><small class="num">${money(r.amount)}, ${esc(r.date||"")}</small></div></button>`).join("")}</div>`
+      :`<div class="empty">No receipts in ${esc(p.label)}.<br>Tap Add, then Scan receipt.</div>`}}
+function renderGst(){
+  const p=period(),l=periodTx(),s=summarize(l);
+  const missing=l.filter(x=>x.type==="income"&&(x.platform==="Uber"||x.platform==="DiDi")&&!num(x.gst)&&num(x.amount)>0);
+  $("tab-gst").innerHTML=`
+    <div class="card"><h2>GST estimate for BAS</h2><p class="muted">${esc(p.label)}${p.sub?`, ${esc(p.sub)}`:""}. ${esc(rangeText(p))}.</p>
+      <div class="gst-grid">
+        <div><span>G1 Total sales</span><strong class="num">${money(s.g1)}</strong></div>
+        <div><span>1A GST on sales</span><strong class="num">${money(s.oneA)}</strong></div>
+        <div><span>1B GST credits</span><strong class="num">${money(s.oneB)}</strong></div>
+        <div><span>Income records</span><strong class="num">${l.filter(x=>x.type==="income").length}</strong></div>
+        <div class="pay"><span>Estimated GST payable (1A minus 1B)</span><strong class="num">${money(s.gst)}</strong></div>
+      </div>
+      ${missing.length?`<p class="note">${missing.length} income record${missing.length>1?"s have":" has"} no GST entered, so 1A is probably too low. Ride fares are normally GST-inclusive, which makes GST one eleventh of the amount. Check your tax invoices first.</p><div class="btns"><button class="btn alt" data-act="fill-gst">Fill missing GST at 1/11</button></div>`:""}
+      <p class="note">Bookkeeping estimate only. Check statement classifications, tax invoices and your real BAS before lodging.</p></div>
+    <div class="card"><h3>Reports</h3><p class="muted">Built from the period selected above.</p>
+      <div class="btns"><button class="btn" data-act="pdf-full">Full report PDF</button><button class="btn alt" data-act="pdf-acc">Accountant pack PDF</button><button class="btn alt" data-act="csv-period">CSV for this period</button></div></div>`}
+function renderData(){
+  const lb=lsGet("rl_lastBackup");
+  $("tab-data").innerHTML=`
+    <div class="card"><h2>Your data</h2><p class="muted">Everything is stored on this device, in this browser. Nothing is uploaded.</p>
+      <dl class="kv" style="margin-top:14px"><dt>Transactions</dt><dd class="num">${state.tx.length}</dd><dt>Receipt photos</dt><dd class="num">${state.rc.length}</dd><dt>Last backup</dt><dd>${lb?new Date(Number(lb)).toLocaleDateString("en-AU",{day:"numeric",month:"short",year:"numeric"}):"Never"}</dd></dl>
+      <div class="btns"><button class="btn main" data-act="backup">Back up now</button><button class="btn alt" data-act="restore">Restore backup</button></div></div>
+    <div class="card"><h3>Export everything</h3><p class="muted">One CSV with every transaction, all periods.</p><div class="btns"><button class="btn alt" data-act="csv-all">Export CSV</button></div></div>
+    <div class="card"><h3>Clear data</h3><p class="muted">Deletes every transaction and receipt from this device. Back up first.</p><div class="btns"><button class="btn danger" data-act="clear">Delete everything</button></div></div>
+    <p class="muted" style="text-align:center">RideLedger V5</p>`}
+function renderAll(){renderHeader();renderHome();renderRecords();renderGst();renderData()}
+async function refresh(){state.tx=await getAll("transactions");state.rc=await getAll("receipts");renderAll()}
+function showTab(t){tab=t;document.querySelectorAll("[data-tab]").forEach(b=>{if(b.tagName==="BUTTON")b.setAttribute("aria-selected",String(b.dataset.tab===t))});
+  ["home","records","gst","data"].forEach(k=>$("tab-"+k).hidden=k!==t);$("fab").hidden=t!=="records";window.scrollTo(0,0)}
+
+/* ---------- reports ---------- */
+const pdfClean=s=>String(s??"").replace(/[\u2013\u2014]/g,"-").replace(/[\u2018\u2019]/g,"'").replace(/[\u201C\u201D]/g,'"').replace(/[^\x20-\x7E]/g,"?").replace(/\\/g,"\\\\").replace(/\(/g,"\\(").replace(/\)/g,"\\)");
+function makeDoc(){const pages=[[]];let y=790;const cur=()=>pages[pages.length-1];
+  return{pages,get y(){return y},set y(v){y=v},newPage(){pages.push([]);y=790},
+    t(x,sz,s,b){cur().push(`BT /${b?"F2":"F1"} ${sz} Tf ${x} ${y} Td (${pdfClean(s)}) Tj ET`)},
+    r(xr,sz,s,b){const w=String(s).length*sz*.53;cur().push(`BT /${b?"F2":"F1"} ${sz} Tf ${(xr-w).toFixed(1)} ${y} Td (${pdfClean(s)}) Tj ET`)},
+    rule(x1,x2){cur().push(`0.7 G 0.5 w ${x1} ${y} m ${x2} ${y} l S`)}}}
+function buildPdf(doc){
+  const pages=doc.pages,n=pages.length,o=[];
+  o[1]="<< /Type /Catalog /Pages 2 0 R >>";
+  o[2]=`<< /Type /Pages /Kids [${pages.map((_,i)=>`${5+i*2} 0 R`).join(" ")}] /Count ${n} >>`;
+  o[3]="<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>";
+  o[4]="<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>";
+  pages.forEach((ops,i)=>{const s=ops.concat([`BT /F1 8 Tf 40 28 Td (RideLedger, page ${i+1} of ${n}) Tj ET`]).join("\n");
+    o[5+i*2]=`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${6+i*2} 0 R >>`;
+    o[6+i*2]=`<< /Length ${s.length} >>\nstream\n${s}\nendstream`});
+  let pdf="%PDF-1.4\n";const off=[0];
+  for(let i=1;i<o.length;i++){off[i]=pdf.length;pdf+=`${i} 0 obj\n${o[i]}\nendobj\n`}
+  const xr=pdf.length;pdf+=`xref\n0 ${o.length}\n0000000000 65535 f \n`;
+  for(let i=1;i<o.length;i++)pdf+=String(off[i]).padStart(10,"0")+" 00000 n \n";
+  pdf+=`trailer\n<< /Size ${o.length} /Root 1 0 R >>\nstartxref\n${xr}\n%%EOF`;
+  return new Blob([pdf],{type:"application/pdf"})}
+function reportDoc(title,full){
+  const p=period(),l=periodTx(),s=summarize(l),d=makeDoc();
+  d.t(40,20,title,true);d.y-=20;d.t(40,10,`${p.label}${p.sub?" ("+p.sub+")":""}   ${rangeText(p)}`);d.y-=13;d.t(40,9,`Generated ${new Date().toLocaleDateString("en-AU")}`);d.y-=22;
+  const sec=h=>{d.t(40,12,h,true);d.y-=6;d.rule(40,555);d.y-=15};
+  const row=(a,b,bold)=>{d.t(40,10,a,bold);d.r(555,10,b,bold);d.y-=16};
+  sec("Income and expenses");
+  row("Uber gross",money(s.uber));row("DiDi gross",money(s.didi));row("Total gross income",money(s.income),true);
+  row("Platform fees",money(s.fees));row("Other expenses",money(s.other));row("Total expenses",money(s.expenses),true);
+  row("Net before GST",money(s.income-s.expenses),true);d.y-=10;
+  sec("GST / BAS estimate");
+  row("G1 Total sales",money(s.g1));row("1A GST on sales",money(s.oneA));row("1B GST credits",money(s.oneB));row("Estimated GST payable",money(s.gst),true);
+  row("Estimated take-home after GST",money(s.real),true);d.y-=10;
+  sec("Platforms");
+  row("Uber: fees and deductions",money(s.uberCharges));row("Uber: left after deductions",money(s.uberNet));
+  row("DiDi: fees and deductions",money(s.didiCharges));row("DiDi: left after deductions",money(s.didiNet));
+  if(s.km>0)row("Recorded on-trip km",s.km.toFixed(1));
+  d.y-=10;
+  if(full){
+    d.t(40,8.5,"Bookkeeping estimate only. Check statement classifications, tax invoices and your real BAS before lodging.");
+  }else{
+    d.t(40,8.5,"Bookkeeping estimate only. Reconcile against source statements and tax invoices before lodging.");d.y-=24;
+    d.newPage();d.t(40,14,"Transactions",true);d.y-=8;d.rule(40,555);d.y-=16;
+    const head=()=>{d.t(40,9,"Date",true);d.t(100,9,"Platform",true);d.t(150,9,"Type",true);d.t(195,9,"Description",true);d.r(495,9,"Amount",true);d.r(555,9,"GST",true);d.y-=6;d.rule(40,555);d.y-=13};
+    head();
+    [...l].sort((a,b)=>String(a.date).localeCompare(String(b.date))).forEach(x=>{
+      if(d.y<60){d.newPage();head()}
+      d.t(40,8.5,x.date||"");d.t(100,8.5,x.platform||"");d.t(150,8.5,x.type==="income"?"Income":"Expense");
+      const ds=String(x.description||"");d.t(195,8.5,ds.length>50?ds.slice(0,49)+"...":ds);
+      d.r(495,8.5,(x.type==="expense"?"-":"")+money(x.amount).replace("A$","$"));d.r(555,8.5,num(x.gst)?money(x.gst).replace("A$","$"):"");d.y-=13});
+    if(d.y<90)d.newPage();
+    d.y-=6;d.rule(40,555);d.y-=15;d.t(195,10,"Totals",true);d.r(495,10,"Income "+money(s.income),true);d.r(555,10,"1A-1B "+money(s.gst),true)}
+  return buildPdf(d)}
+const csvEsc=v=>`"${String(v??"").replaceAll('"','""')}"`;
+function csvBlob(list){const rows=[["Date","Type","Platform","Category","Description","Amount","GST"],...[...list].sort((a,b)=>String(a.date).localeCompare(String(b.date))).map(x=>[x.date,x.type,x.platform,x.category||"",x.description,x.amount,x.gst])];
+  return new Blob(["\uFEFF"+rows.map(r=>r.map(csvEsc).join(",")).join("\r\n")],{type:"text/csv"})}
+const fileSlug=()=>period().label.replace(/[^A-Za-z0-9]+/g,"_");
+
+/* ---------- backup / restore ---------- */
+async function doBackup(){
+  const data={app:"RideLedger",version:2,exportedAt:new Date().toISOString(),transactions:state.tx,receipts:state.rc};
+  const ok=await saveFile(`RideLedger_backup_${today()}.json`,new Blob([JSON.stringify(data)],{type:"application/json"}));
+  if(ok){lsSet("rl_lastBackup",String(Date.now()));renderHome();renderData()}}
+async function doRestore(file){
+  let data;try{data=JSON.parse(await file.text())}catch(e){toast("That file is not a valid backup");return}
+  if(!data||!Array.isArray(data.transactions)){toast("That file is not a RideLedger backup");return}
+  const rc=Array.isArray(data.receipts)?data.receipts:[];
+  openSheet("Restore backup",`<p>This backup has <b>${data.transactions.length}</b> transactions and <b>${rc.length}</b> receipts${data.exportedAt?`, saved ${esc(new Date(data.exportedAt).toLocaleDateString("en-AU"))}`:""}.</p>
+    <div class="btns" style="flex-direction:column"><button class="btn main block" id="rMerge">Add to what is here</button><button class="btn danger block" id="rReplace">Replace everything on this device</button><button class="btn alt block" id="rNo">Cancel</button></div>
+    <p class="muted">Adding skips records that already exist.</p>`);
+  $("rNo").onclick=()=>closeSheet();
+  $("rMerge").onclick=async()=>{
+    const sig=x=>[x.date,x.type,x.platform,x.description,x.amount,x.gst].join("|"),have=new Set(state.tx.map(sig)),map=new Map();let n=0;
+    for(const r of rc){const {id,...rest}=r;const nid=await add("receipts",rest);map.set(id,nid)}
+    for(const t of data.transactions){if(have.has(sig(t)))continue;const {id,...rest}=t;if(rest.receiptId!=null)rest.receiptId=map.get(rest.receiptId)??rest.receiptId;await add("transactions",rest);n++}
+    closeSheet(true);toast(`Added ${n} transactions`);refresh()};
+  $("rReplace").onclick=async()=>{
+    if(!await askConfirm({title:"Replace everything?",message:"All current records on this device will be deleted first.",ok:"Replace",danger:true}))return;
+    await clearStore("transactions");await clearStore("receipts");
+    for(const r of rc)await put("receipts",r);for(const t of data.transactions)await put("transactions",t);
+    closeSheet(true);toast("Backup restored");refresh()}}
+
+/* ---------- events ---------- */
+let pendingKind="Uber";
+function pickPdf(k){pendingKind=k;closeSheet(true);$("fPdf").click()}
+function addSheet(){openSheet("Add",`<div class="list">
+  ${[["import-uber","Import Uber PDF","Weekly statement"],["import-didi","Import DiDi PDF","Monthly tax summary"],["import-bank","Import bank PDF","Enter the line you need"],["scan","Scan a receipt","Photo, category and GST"],["manual","Add by hand","Income or expense"]].map(([a,t,s])=>`<button class="row" data-act="${a}"><span class="row-main"><b>${t}</b><small>${s}</small></span></button>`).join("")}</div>`)}
+document.addEventListener("click",async e=>{
+  const a=e.target.closest("[data-act]");
+  if(a){const act=a.dataset.act;
+    if(act==="import-uber")pickPdf("Uber");else if(act==="import-didi")pickPdf("DiDi");else if(act==="import-bank")pickPdf("Bank");
+    else if(act==="scan"){closeSheet(true);$("fImg").click()}
+    else if(act==="manual"){closeSheet(true);openTxForm(null)}
+    else if(act==="add-sheet")addSheet();
+    else if(act==="backup")doBackup();
+    else if(act==="restore")$("fJson").click();
+    else if(act==="csv-period")saveFile(`RideLedger_${fileSlug()}.csv`,csvBlob(periodTx()));
+    else if(act==="csv-all")saveFile("RideLedger_all_transactions.csv",csvBlob(state.tx));
+    else if(act==="pdf-full")saveFile(`RideLedger_${fileSlug()}.pdf`,reportDoc("RideLedger report",true));
+    else if(act==="pdf-acc")saveFile(`RideLedger_Accountant_Pack_${fileSlug()}.pdf`,reportDoc("RideLedger accountant pack",false));
+    else if(act==="fill-gst"){const p=period(),l=periodTx().filter(x=>x.type==="income"&&(x.platform==="Uber"||x.platform==="DiDi")&&!num(x.gst)&&num(x.amount)>0);
+      if(await askConfirm({title:"Fill GST at 1/11?",message:`This sets GST to one eleventh of the amount on ${l.length} income record${l.length>1?"s":""} in ${p.label}. You can edit any of them afterwards.`,ok:"Fill GST"})){for(const x of l)await put("transactions",{...x,gst:r2(num(x.amount)/11)});toast("GST filled");refresh()}}
+    else if(act==="clear"){if(await askConfirm({title:"Delete everything?",message:"Every transaction and receipt on this device will be removed. This cannot be undone.",ok:"Delete everything",danger:true})){await clearStore("transactions");await clearStore("receipts");toast("All data deleted");refresh()}}
+    return}
+  const tx=e.target.closest("[data-tx]");if(tx){const x=state.tx.find(t=>String(t.id)===tx.dataset.tx);if(x)openTxForm(x);return}
+  const rc=e.target.closest("[data-rc]");if(rc){const r=state.rc.find(t=>String(t.id)===rc.dataset.rc);if(r)openReceipt(r)}});
+document.querySelectorAll("#ranges .chip").forEach(b=>b.onclick=()=>{range=b.dataset.range;offset=0;renderAll()});
+$("pPrev").onclick=()=>{offset--;renderAll()};$("pNext").onclick=()=>{if(offset<0){offset++;renderAll()}};
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+document.querySelectorAll("#recView button").forEach(b=>b.onclick=()=>{recView=b.dataset.v;renderRecords()});
+document.querySelectorAll("#recFilter .chip").forEach(b=>b.onclick=()=>{recFilter=b.dataset.f;renderRecords()});
+$("recSearch").oninput=e=>{recQuery=e.target.value.trim().toLowerCase();renderRecords()};
+$("fPdf").onchange=e=>{const f=[...e.target.files];e.target.value="";if(f.length)startQueue(f,pendingKind)};
+$("fJson").onchange=e=>{const f=e.target.files[0];e.target.value="";if(f)doRestore(f)};
+$("fImg").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;
+  try{openReceipt({imageData:await toDataUrl(f),date:today(),category:"Fuel"})}catch(err){toast(err.message||"Could not read this photo")}};
+
+/* ---------- start ---------- */
+(async()=>{
+  try{await openDb();await refresh()}catch(e){$("tab-home").innerHTML=`<div class="card"><h2>Storage is unavailable</h2><p class="muted">This browser blocked local storage, so RideLedger cannot save anything. Open it in Safari or Chrome outside private mode.</p></div>`}
+  try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
+  try{if("serviceWorker" in navigator&&/^https?:/.test(location.protocol))navigator.serviceWorker.register("./service-worker.js").catch(()=>{})}catch(e){}
+})();
+</script>
+</body>
+</html>
